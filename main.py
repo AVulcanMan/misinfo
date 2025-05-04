@@ -5,7 +5,8 @@ from googleapiclient.errors import HttpError
 from dotenv import load_dotenv
 load_dotenv()
 
-co = cohere.ClientV2("sRibjDEucv5MPGpVuMZWNeO4IGWFBkuD1lZ9wFIJ")
+cohere_key = os.environ.get('key2')
+co = cohere.ClientV2(cohere_key)
 
 API_KEY = os.environ.get('key')
 MAX_CLAIMS = 3
@@ -36,6 +37,15 @@ def cohere_response(user_input):
         messages=[{"role": "user", "content":f"Evaluate the truth of {user_input} based on your knowledge on a scale of 1-10 and explain YOUR RATING. If you can't confidently answer, respond :Unable to verify this claim. "}],
     )
     return response
+def extract_text_manually(response):
+    response_str = str(response)
+    try:
+        start = response_str.index("text='") + len("text='")
+        end = response_str.index("')", start)
+        return response_str[start:end]
+    except ValueError as e:
+        print(f"❌ Could not parse text from response: {e}")
+        return None
 
 def main():
     user_query = input("Enter a query to fact-check: ").strip()
@@ -44,7 +54,13 @@ def main():
         return
 
     print(f"🔍 Querying for: “{user_query}”")
-    print(cohere_response(user_query))
+    response = cohere_response(user_query)
+    result = extract_text_manually(response)
+
+    if result:
+        print(result)
+    else:
+        print("❌ No usable text extracted.")
 
 
 if __name__ == "__main__":
