@@ -1,42 +1,46 @@
 import os
 import cohere
+import streamlit as st
 from googleapiclient.discovery import build
 from googleapiclient.errors import HttpError
 from dotenv import load_dotenv
-load_dotenv()
 
-cohere_key = os.environ.get('key2')
+# Load API keys
+load_dotenv()
+cohere_key = os.getenv('key2')
+API_KEY = os.getenv('key')
+
+# Initialize Cohere client
 co = cohere.ClientV2(cohere_key)
 
-API_KEY = os.environ.get('key')
-MAX_CLAIMS = 3
-print("API_KEY loaded:", API_KEY)
-  
-
+# Fetch Google Fact Check claims
 def fetch_claims(query):
     try:
         service = build("factchecktools", "v1alpha1", developerKey=API_KEY)
         request = service.claims().search(query=query)
         return request.execute()
     except HttpError as err:
-        print(f"❌ Google Fact Check API error: {err}")
+        st.error(f"❌ Google Fact Check API error: {err}")
     except Exception as e:
-        print(f"⚠️ Unexpected error: {e}")
+        st.error(f"⚠️ Unexpected error: {e}")
     return None
 
+# Generate response using Cohere
 def cohere_response(user_input):
     google_fact = fetch_claims(user_input)
     if google_fact:
         response = co.chat(
             model="command-r-plus",
-            messages=[{"role": "user", "content": f"Based on {google_fact}, evaluate the truth of {user_input} on a scale of 1-10 and explain why. Three sentences max. Make sure to include a source and link"}],
+            messages=[{"role": "user", "content": f"Based on {google_fact}, evaluate the truth of '{user_input}' on a scale of 1-10 and explain why. Three sentences max. Make sure to include a source and link."}]
         )
-        return response
-    response = co.chat(
-        model="command-r-plus",
-        messages=[{"role": "user", "content":f"Evaluate the truth of {user_input} based on your knowledge on a scale of 1-10 and explain YOUR RATING. If you can't confidently answer, respond :Unable to verify this claim. "}],
-    )
+    else:
+        response = co.chat(
+            model="command-r-plus",
+            messages=[{"role": "user", "content": f"Evaluate the truth of '{user_input}' based on your knowledge on a scale of 1-10 and explain YOUR RATING. Explain how confident you are in your answer. Begin your answer w/ TRUE or FALSE."}]
+        )
     return response
+
+# Extract Cohere response text
 def extract_text_manually(response):
     response_str = str(response)
     try:
@@ -44,24 +48,22 @@ def extract_text_manually(response):
         end = response_str.index("')", start)
         return response_str[start:end]
     except ValueError as e:
-        print(f"❌ Could not parse text from response: {e}")
+        st.error(f"❌ Could not parse text from response: {e}")
         return None
 
-def main():
-    user_query = input("Enter a query to fact-check: ").strip()
-    if not user_query:
-        print("⚠️ You must enter a query!")
-        return
+# Streamlit UI
+st.title("🕵️‍♂️ AI-Powered Fact Checker")
+user_query = st.text_input("Enter a claim to fact-check:", "")
 
-    print(f"🔍 Querying for: “{user_query}”")
-    response = cohere_response(user_query)
-    result = extract_text_manually(response)
-
-    if result:
-        print(result)
+if st.button("Check Fact"):
+    if not user_query.strip():
+        st.warning("⚠️ You must enter a query!")
     else:
-        print("❌ No usable text extracted.")
-
-
-if __name__ == "__main__":
-    main()
+        st.info(f"🔍 Checking claim: “{user_query}”")
+        response = cohere_response(user_query)
+        result = extract_text_manually(response)
+        if result:
+            st.success("✅ Fact-Check Result:")
+            st.write(result)
+        else:
+            st.error("❌ No usable text extracted.")
