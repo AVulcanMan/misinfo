@@ -4,6 +4,7 @@ import streamlit as st
 from googleapiclient.discovery import build
 from googleapiclient.errors import HttpError
 from dotenv import load_dotenv
+import re
 
 # Load API keys
 load_dotenv()
@@ -43,7 +44,7 @@ def cohere_response(user_input):
     else:
         response = co.chat(
             model="command-r-plus",
-            messages=[{"role": "user", "content": f"Evaluate the truth of '{user_input}' based on your knowledge on a scale of 1-10 and explain YOUR RATING. Explain how confident you are in your answer. ALWAYS being your answer with a Rating: (score)/10."}]
+            messages=[{"role": "user", "content": f"Evaluate the truth of '{user_input}' based on your knowledge on a scale of 1-10 and explain YOUR RATING.  ALWAYS being your answer with a Rating: (score)/10."}]
         )
     print(response)
     return response
@@ -52,21 +53,28 @@ def cohere_response(user_input):
 def extract_text_manually(response):
     response_str = str(response)
     try:
-        start = response_str.index("text='") + len("text='")
-        end = response_str.index("')", start)
-        raw_text = response_str[start:end]
-        cleaned_text = raw_text.replace('\\n', ' ').replace('\n', ' ').strip()
-        return cleaned_text
+        # Match text= followed by either single or double quote, then capture everything non-greedily up to the matching quote
+        match = re.search(r'text=(["\'])(.*?)\1', response_str, re.DOTALL)
+        if match:
+            raw_text = match.group(2)
+            cleaned_text = raw_text.replace('\\n', ' ').replace('\n', ' ').strip()
+            return cleaned_text
+        else:
+            raise ValueError("Pattern not found")
     except ValueError as e:
         st.error(f"❌ Could not parse text from response: {e}")
         return None
+
 def extract_rating(response):
     response_str = str(response)
-    start = response_str.index("Rating:") + len("Rating:")
-    end = response_str.index("/", start)
-    text_rating = response_str[start:end]
-    rating = int(text_rating)
-    return rating
+    match = re.search(r'Rating:\s*(\d{1,2})/10', response_str)
+    if match:
+        rating = int(match.group(1))
+        return rating
+    else:
+        print("❌ Could not find rating in response")
+        return None
+
 # Streamlit UI
 st.title("🕵️‍♂️ AI-Powered Fact Checker")
 user_query = st.text_input("Enter a claim to fact-check:", "")
@@ -87,3 +95,4 @@ if st.button("Check Fact"):
             st.write(result)
         else:
             st.error("❌ No usable text extracted.")
+            st.write(cohere_response(user_query))
