@@ -24,9 +24,9 @@ else:
 co = cohere.ClientV2(cohere_key)
 # Initialize Reddit
 reddit = praw.Reddit(
-    client_id=os.getenv("reddit_id"),
-    client_secret= os.getenv("reddit_secret"),
-    user_agent=os.getenv("reddit_agent"),
+    client_id=st.secrets["reddit_id"],
+    client_secret= st.secrets["reddit_secret"],
+    user_agent=st.secrets["reddit_agent"],
 )
 # Fetch Google Fact Check claims
 def fetch_claims(query):
@@ -125,7 +125,7 @@ if "history" not in st.session_state:
 
 # Streamlit UI with navigation
 st.sidebar.title("🕵️‍♂️ AI-Powered Fact Checker 🕵️‍♂️")
-page = st.sidebar.radio("Go to", ["Fact Checker", "Past Claims"])
+page = st.sidebar.radio("Go to", ["Fact Checker", "Past Claims","AI Image Detector"])
 
 if page == "Fact Checker":
     st.title("🕵️‍♂️ AI-Powered Fact Checker 🕵️‍♂️")
@@ -217,3 +217,5 @@ elif page == "Past Claims":
             st.success("History cleared!")
     else:
         st.info("No past fact-checks available.")
+elif page == "AI Image Detector":
+    n
