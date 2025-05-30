@@ -60,7 +60,7 @@ def cohere_response(user_input):
     return response
 reddit_icon_url = "https://th.bing.com/th/id/OIP.khATfz1EKTtDrzIWUsmvLwHaHa?rs=1&pid=ImgDetMain"
 
-def get_reddit_comments(claim, subreddits=["conservative", "conspiracy"], limit=20):
+def get_reddit_comments(claim, subreddits=["conservative", "conspiracy"], limit=10):
     """Fetch Reddit comments from given subreddits that partially match the claim from the past year."""
     comments_data = []
     search_query = claim  # partial match search
