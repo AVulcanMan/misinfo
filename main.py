@@ -8,6 +8,7 @@ import re
 import json
 import praw
 import pandas as pd
+import requests
 
 # Load API keys
 load_dotenv()
@@ -19,6 +20,8 @@ if not st.secrets:
 else:
     API_KEY = st.secrets["key"]
     cohere_key = st.secrets["key2"]
+se_user = st.secrets["se_user"]
+se_secret = st.secrets["se_secret"]
 
 # Initialize Cohere client
 co = cohere.ClientV2(cohere_key)
@@ -125,7 +128,7 @@ if "history" not in st.session_state:
 
 # Streamlit UI with navigation
 st.sidebar.title("🕵️‍♂️ AI-Powered Fact Checker 🕵️‍♂️")
-page = st.sidebar.radio("Go to", ["Fact Checker", "Past Claims","AI Image Detector"])
+page = st.sidebar.radio("Go to", ["Fact Checker", "Past Claims"])
 
 if page == "Fact Checker":
     st.title("🕵️‍♂️ AI-Powered Fact Checker 🕵️‍♂️")
@@ -217,5 +220,4 @@ elif page == "Past Claims":
             st.success("History cleared!")
     else:
         st.info("No past fact-checks available.")
-elif page == "AI Image Detector":
-    n
+
